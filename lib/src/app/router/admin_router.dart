@@ -4,13 +4,12 @@ import '../../core/session/session_controller.dart';
 import '../../features/access/presentation/login_page.dart';
 import '../../features/availability/presentation/availability_page.dart';
 import '../../features/categories/presentation/categories_page.dart';
+import '../../features/accounts/presentation/accounts_page.dart';
 import '../../features/contacts/presentation/contacts_page.dart';
 import '../../features/home/presentation/home_page.dart';
 import '../../features/memberships/presentation/memberships_page.dart';
-import '../../features/providers/presentation/providers_page.dart';
 import '../../features/reports/presentation/reports_page.dart';
 import '../../features/reviews/presentation/reviews_page.dart';
-import '../../features/users/presentation/users_page.dart';
 import '../layout/admin_scaffold.dart';
 
 GoRouter createAdminRouter(AdminSession session) => GoRouter(
@@ -42,11 +41,7 @@ GoRouter createAdminRouter(AdminSession session) => GoRouter(
           path: '/categories',
           builder: (context, state) => const CategoriesPage(),
         ),
-        GoRoute(path: '/users', builder: (context, state) => const UsersPage()),
-        GoRoute(
-          path: '/providers',
-          builder: (context, state) => const ProvidersPage(),
-        ),
+        GoRoute(path: '/accounts', builder: (context, state) => const AccountsPage()),
         GoRoute(
           path: '/reviews',
           builder: (context, state) => const ReviewsPage(),

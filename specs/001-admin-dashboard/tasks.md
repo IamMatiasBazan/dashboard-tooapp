@@ -237,3 +237,32 @@ Entregar cada área como contrato → persistencia/migración si corresponde →
 
 - [ ] T086 Reconciliar las referencias obsoletas de paleta (`#165D54`/`#F5F7F6`) y la decisión de validación visual pendiente en `spec.md` y `plan.md` con los tokens aprobados de `too_app_mobile` per FR-011 (contradicts).
 - [ ] T087 Aplicar `AdminTheme.success` (`#007A59`) a las insignias de estados positivos, mantener el azul como color primario y cubrir la semántica de color con una prueba widget per FR-011 (partial).
+
+## Phase 15: User Story 4 — Directorio conjunto de Usuarios y prestadores (P2)
+
+**Goal**: Reemplazar las pantallas separadas de Usuarios y Prestadores por una lista conjunta de solo lectura, con búsqueda y paginación globales. Mantener Inicio y los demás módulos administrativos.
+
+**Independent Test**: Con repositorios y HTTP simulados, un ADMIN ve filas CLIENT y PROVIDER correctamente discriminadas, busca y pagina sobre el total combinado, y no encuentra acciones de edición, cambio de estado o moderación. Las demás rutas permanecen disponibles; la consulta deniega roles no autorizados. No se usa una base de datos real.
+
+### Tests para US4
+
+- [X] T088 [P] [US4] Cubrir unión de CLIENT/PROVIDER, filtros, conteo, orden `createdAt DESC` + `id ASC`, límites globales entre páginas y errores de filtro incompatible con repositorio mock en `/Users/matybazan/Documents/api-tooapp/tests/unit/admin-accounts.test.ts`.
+- [X] T089 [P] [US4] Cubrir guard ADMIN, query estricta y respuesta paginada del endpoint con dependencias mockeadas y sin DB en `/Users/matybazan/Documents/api-tooapp/tests/unit/admin-accounts-routes.test.ts`.
+- [X] T090 [P] [US4] Cubrir modelo/parseo de `AccountListItem`, DTO discriminado y estados de error de consulta mediante fixtures HTTP en `/Users/matybazan/Documents/dashboard_tooapp/test/src/features/accounts/accounts_data_source_test.dart`.
+- [X] T091 [P] [US4] Cubrir tabla combinada, filtros, paginación global, estados carga/vacío/error y ausencia de mutaciones en `/Users/matybazan/Documents/dashboard_tooapp/test/src/features/accounts/accounts_page_test.dart`.
+
+### Implementación US4
+
+- [X] T092 [US4] Implementar `GET /admin/accounts` con schema Zod estricto, guard `authenticate` + `requireRole('ADMIN')`, filtros por tipo/estado/localidad y filtros de prestador, búsqueda aprobada, orden global estable, conteo y paginación `page`/`limit` sobre modelos existentes; responder `{data,total,page,limit}` sin cambios de esquema y sin que el agente ejecute consultas/SQL o migraciones; la ruta usa Prisma en runtime en `/Users/matybazan/Documents/api-tooapp/src/modules/admin-read/admin-read.schema.ts`, `admin-read.routes.ts`, `admin-read.controller.ts`, `admin-read.service.ts` y `admin-read.repository.ts`.
+- [X] T093 [US4] Crear modelo tipado, data source y repository Flutter de solo lectura para `GET /admin/accounts`, incluyendo errores y envelope `{data,total,page,limit}`, en `/Users/matybazan/Documents/dashboard_tooapp/lib/src/features/accounts/models/admin_account.dart` y `/Users/matybazan/Documents/dashboard_tooapp/lib/src/features/accounts/data/`.
+- [X] T094 [US4] Implementar una sola página `Usuarios y prestadores` con tabla discriminada, filtros soportados, paginación global y estados de carga/vacío/error/reintento; no incluir edición, activación/desactivación ni moderación de portafolio en `/Users/matybazan/Documents/dashboard_tooapp/lib/src/features/accounts/presentation/accounts_page.dart`.
+- [X] T095 [US4] Reemplazar las entradas y rutas separadas `/users` y `/providers` por `/accounts`, mantener Inicio y las demás secciones y asegurar que no queden accesibles desde el router acciones de esas listas en `/Users/matybazan/Documents/dashboard_tooapp/lib/src/app/router/admin_router.dart` y `/Users/matybazan/Documents/dashboard_tooapp/lib/src/app/layout/admin_scaffold.dart`.
+- [X] T096 [US4] Actualizar la matriz API-dashboard y guía de validación con `GET /admin/accounts`, filtros, respuesta paginada, límites de solo lectura y la prohibición de pruebas/conexiones a DB en `/Users/matybazan/Documents/api-tooapp/docs/admin-traceability.md` y `/Users/matybazan/Documents/dashboard_tooapp/specs/001-admin-dashboard/quickstart.md`.
+
+**Dependencias**: T088–T089 pueden prepararse en paralelo con T090–T091 usando el contrato OpenAPI. T092 depende de T088–T089; T093 depende del contrato y puede avanzar en paralelo con T092. T094–T095 dependen del modelo/data source. T096 depende del contrato final. No ejecutar pruebas de integración PostgreSQL ni comandos de base de datos.
+
+**MVP del incremento**: T088–T095 entregan y validan el directorio de lectura completo. T096 completa la trazabilidad.
+
+## Phase 16: Polish & Cross-Cutting Validation
+
+- [X] T097 Ejecutar únicamente pruebas unitarias/HTTP mock de `admin-accounts` y pruebas Flutter de `features/accounts`, además de `flutter analyze --no-pub`; registrar resultados sin ejecutar integración PostgreSQL, SQL, migraciones ni consultas a base de datos en `/Users/matybazan/Documents/api-tooapp/docs/admin-traceability.md`.

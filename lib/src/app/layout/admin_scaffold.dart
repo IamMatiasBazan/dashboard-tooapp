@@ -20,8 +20,7 @@ class AdminScaffold extends StatelessWidget {
       _NavigationItem('Contactos', '/contacts', Icons.chat_bubble_outline),
     ]),
     _NavigationGroup('Personas', [
-      _NavigationItem('Usuarios', '/users', Icons.people_outline),
-      _NavigationItem('Prestadores', '/providers', Icons.handyman_outlined),
+      _NavigationItem('Usuarios y prestadores', '/accounts', Icons.people_outline),
       _NavigationItem('Reseñas', '/reviews', Icons.rate_review_outlined),
     ]),
     _NavigationGroup('Gestión', [

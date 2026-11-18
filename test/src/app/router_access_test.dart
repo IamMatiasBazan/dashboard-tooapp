@@ -39,14 +39,17 @@ class _TestAdminSession extends AdminSession {
 }
 
 ApiClient _routerApi() => fakeApiClient((request) {
-  if (request.uri.path == '/admin/users') {
-    return fakeJsonResponse(
-      request,
-      apiEnvelope({
-        'items': <Object?>[],
-        'pagination': {'page': 1, 'limit': 20, 'total': 0, 'totalPages': 0},
-      }),
-    );
+  if (request.uri.path == '/admin/accounts') {
+    return fakeJsonResponse(request, {
+      'data': <Object?>[],
+      'total': 0,
+      'page': 1,
+      'limit': 20,
+    });
+  }
+  if (request.uri.path == '/localities' ||
+      request.uri.path == '/admin/categories') {
+    return fakeJsonResponse(request, apiEnvelope(<Object?>[]));
   }
   return fakeJsonResponse(
     request,
@@ -73,28 +76,28 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    router.go('/users');
+    router.go('/accounts');
     await tester.pumpAndSettle();
     expect(find.text('Administración'), findsOneWidget);
-    expect(find.text('Usuarios'), findsNothing);
+    expect(find.text('Usuarios y prestadores'), findsNothing);
 
     expect(await session.login('ada@example.test', 'password123'), isTrue);
-    router.go('/users');
+    router.go('/accounts');
     await tester.pumpAndSettle();
-    expect(find.text('Usuarios'), findsWidgets);
+    expect(find.text('Usuarios y prestadores'), findsWidgets);
 
     await session.logout();
     await tester.pumpAndSettle();
     expect(find.text('Ingresar'), findsOneWidget);
-    expect(find.text('Usuarios'), findsNothing);
+    expect(find.text('Usuarios y prestadores'), findsNothing);
 
     expect(await session.login('ada@example.test', 'password123'), isTrue);
-    router.go('/users');
+    router.go('/accounts');
     await tester.pumpAndSettle();
     session.expire();
     await tester.pumpAndSettle();
     expect(find.text('Ingresar'), findsOneWidget);
-    expect(find.text('Usuarios'), findsNothing);
+    expect(find.text('Usuarios y prestadores'), findsNothing);
     router.dispose();
   });
 }

@@ -126,6 +126,25 @@ class ApiClient {
     }
   }
 
+  Future<Map<String, Object?>> getPage(
+    String path, {
+    Map<String, Object?>? query,
+  }) async {
+    try {
+      final response = await dio.get<Object?>(path, queryParameters: query);
+      final body = response.data;
+      if (body is Map<String, Object?> && body['data'] is List<Object?>) {
+        return body;
+      }
+      throw const ApiFailure(
+        null,
+        'La respuesta paginada del servidor no tiene el formato esperado.',
+      );
+    } on DioException catch (error) {
+      throw _failure(error);
+    }
+  }
+
   Future<List<Map<String, Object?>>> getList(
     String path, {
     Map<String, Object?>? query,
@@ -207,7 +226,10 @@ class ApiClient {
 
   Future<void> logout({required String refreshToken}) async {
     try {
-      await dio.post<void>('/auth/logout', data: {'refreshToken': refreshToken});
+      await dio.post<void>(
+        '/auth/logout',
+        data: {'refreshToken': refreshToken},
+      );
     } on DioException catch (error) {
       throw _failure(error);
     }
@@ -226,7 +248,10 @@ class ApiClient {
   Future<void> _performRefresh() async {
     final currentRefreshToken = _refreshToken;
     if (currentRefreshToken == null) {
-      throw const ApiFailure(401, 'La sesión venció. Iniciá sesión nuevamente.');
+      throw const ApiFailure(
+        401,
+        'La sesión venció. Iniciá sesión nuevamente.',
+      );
     }
     try {
       final response = await dio.post<Object?>(

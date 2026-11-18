@@ -1,0 +1,142 @@
+openapi: 3.1.0
+info:
+  title: TÖÖ Admin Accounts Read API
+  version: 1.0.0
+  description: Contrato de lectura conjunta para clientes y prestadores. Reutiliza modelos existentes y no requiere cambios de esquema.
+paths:
+  /admin/accounts:
+    get:
+      operationId: listAdminAccounts
+      summary: Listar clientes y prestadores en una página global
+      description: >-
+        Combina cuentas CLIENT y PROVIDER, aplica filtros antes del conteo y devuelve
+        resultados ordenados por createdAt descendente y user id ascendente. Solo lectura.
+        Requiere rol ADMIN. No devuelve datos sensibles ni coordenadas.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/AccountType'
+        - $ref: '#/components/parameters/IsAccountActive'
+        - $ref: '#/components/parameters/LocalityId'
+        - $ref: '#/components/parameters/CategoryId'
+        - $ref: '#/components/parameters/IsAvailable'
+      responses:
+        '200':
+          description: Página global confirmada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/InvalidQuery'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+    Search:
+      name: q
+      in: query
+      description: Búsqueda parcial insensible a mayúsculas por nombre, apellido, email y teléfono.
+      schema: { type: string, minLength: 1, maxLength: 100 }
+    AccountType:
+      name: accountType
+      in: query
+      schema: { type: string, enum: [CLIENT, PROVIDER] }
+    IsAccountActive:
+      name: isAccountActive
+      in: query
+      schema: { type: boolean }
+    LocalityId:
+      name: localityId
+      in: query
+      schema: { type: string, format: uuid }
+    CategoryId:
+      name: categoryId
+      in: query
+      description: Filtra prestadores; incompatible con accountType=CLIENT.
+      schema: { type: string, format: uuid }
+    IsAvailable:
+      name: isAvailable
+      in: query
+      description: Filtra prestadores; incompatible con accountType=CLIENT.
+      schema: { type: boolean }
+  schemas:
+    AccountPage:
+      type: object
+      required: [data, total, page, limit]
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/AccountListItem' }
+        total: { type: integer, minimum: 0 }
+        page: { type: integer, minimum: 1 }
+        limit: { type: integer, minimum: 1, maximum: 100 }
+    AccountListItem:
+      type: object
+      required: [id, accountType, firstName, lastName, email, isAccountActive, createdAt, locality, providerProfile]
+      properties:
+        id: { type: string, format: uuid }
+        accountType: { type: string, enum: [CLIENT, PROVIDER] }
+        firstName: { type: string }
+        lastName: { type: string }
+        email:
+          oneOf:
+            - { type: string, format: email }
+            - { type: 'null' }
+        isAccountActive: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        locality:
+          oneOf:
+            - { $ref: '#/components/schemas/LocalitySummary' }
+            - { type: 'null' }
+        providerProfile:
+          oneOf:
+            - { $ref: '#/components/schemas/ProviderSummary' }
+            - { type: 'null' }
+    LocalitySummary:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+    ProviderSummary:
+      type: object
+      required: [id, primaryCategory, isAvailable]
+      properties:
+        id: { type: string, format: uuid }
+        primaryCategory:
+          oneOf:
+            - { $ref: '#/components/schemas/CategorySummary' }
+            - { type: 'null' }
+        isAvailable: { type: boolean }
+    CategorySummary:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+  responses:
+    Unauthorized:
+      description: Credencial ausente, inválida, vencida o revocada.
+    Forbidden:
+      description: El rol no es ADMIN o la cuenta no está activa.
+    InvalidQuery:
+      description: Parámetros inválidos o filtros exclusivos de PROVIDER con accountType=CLIENT.

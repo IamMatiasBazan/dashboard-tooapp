@@ -1,7 +1,7 @@
 # Implementation Plan: TÖÖ Admin Dashboard y API administrativa
 
 **Branch**: `001-admin-dashboard` | **Date**: 2026-11-17 | **Spec**: [spec.md](spec.md)
-**Status**: Approved; resumen de Inicio ampliado el 2026-11-18
+**Status**: Approved; resumen de Inicio ampliado y pantalla conjunta de lectura aprobada el 2026-11-18
 
 **Input**: Especificación administrativa del dashboard y sus contratos de API asociados.
 
@@ -9,7 +9,7 @@
 
 ## Summary
 
-Construir una consola web Flutter responsive y completar el API Express/Prisma con operaciones administrativas reales para cada opción aprobada. La primera entrega autoriza solo al rol `ADMIN`; las cuentas se aprovisionan por un operador autorizado fuera de la consola. La gestión usa consulta, creación/edición cuando aplique y transiciones de estado con historial conservado. Pagos quedan fuera de v1; reseñas pueden ocultarse/restaurarse con motivo y auditoría. La localidad es un dato relacionado de solo lectura, sin módulo administrativo propio. No se habilita una opción del dashboard hasta que su ruta protegida, validación, controller, lógica, persistencia y modelo/DTO estén implementados y probados.
+Construir una consola web Flutter responsive y completar el API Express/Prisma con operaciones administrativas reales para cada opción aprobada. La primera entrega autoriza solo al rol `ADMIN`; las cuentas se aprovisionan por un operador autorizado fuera de la consola. La gestión usa consulta, creación/edición cuando aplique y transiciones de estado con historial conservado; la pantalla conjunta Usuarios y prestadores es de solo lectura y no ofrece mutaciones. Pagos quedan fuera de v1; reseñas pueden ocultarse/restaurarse con motivo y auditoría. La localidad es un dato relacionado de solo lectura, sin módulo administrativo propio. No se habilita una opción del dashboard hasta que su ruta protegida, validación, controller, lógica, persistencia y modelo/DTO estén implementados y probados.
 
 La auditoría de `api-tooapp` del 2026-11-17 confirma que ya existen rutas protegidas Bearer para usuarios, prestadores, categorías, reportes, contactos, reseñas, portafolio y niveles de membresía; varias son solo de lectura. El plan diferencia esas operaciones existentes de las pendientes. Los cambios backend siguen el patrón `routes → middleware/validate → controller → service → repository → Prisma`, y Flutter se organiza por `features/<funcionalidad>/{data,models,presentation}`. Ninguna operación propuesta se considera disponible hasta verificar su implementación.
 
@@ -23,7 +23,7 @@ Las decisiones funcionales G1–G9 fueron aprobadas y se aplican en este plan. E
 
 **Storage**: PostgreSQL mediante Prisma en el API, con PostGIS y columnas geométricas `Unsupported` en Prisma Client. El dashboard no tiene persistencia propia. Se reutilizan modelos de perfil/categoría para servicios; `ProviderProfile` agrega estado de verificación administrativa y `Report` puede vincularse opcionalmente con `Review`. No se crea entidad de pagos, suscripciones históricas ni `Service` independiente.
 
-**Testing**: Dashboard: `flutter_test` está declarado, pero no se encontraron pruebas del dashboard. API: Vitest con scripts unitarios, HTTP/contrato e integración; Supertest y fixtures PostgreSQL existentes. Las pruebas requeridas se enumeran abajo; no se ejecutaron en esta etapa.
+**Testing**: Dashboard: existen pruebas de widget y modelos con `flutter_test`. API: Vitest ofrece suites unitarias, HTTP/contrato e integración; las suites de integración PostgreSQL no se ejecutan por el agente bajo la restricción absoluta de base de datos. Para la pantalla conjunta solo se planifican pruebas unitarias y HTTP mock/repositorio simulado. No se ejecutaron pruebas en esta etapa.
 
 **Target Platform**: Flutter Web en navegadores desktop y móvil. API Express en Node.js dentro del rango declarado. No se modifica ni se recompila la app móvil como parte de esta iniciativa.
 
@@ -184,7 +184,7 @@ Only modules with complete API/UI flows appear in the drawer. Payments and local
 - Forms have allowlisted editable fields only. Status changes have clear current and target state; archive/deactivate is distinct from delete. Review moderation requires reason. Category unification identifies source, target and impact and is confirmed before submit.
 - Every screen handles loading, empty, no matches, success and error. `401` triggers session reauthentication; `403` renders access denied; `409` refreshes the record and explains concurrent change; network/5xx errors cannot show success.
 - Accessibility includes focus order/visibility, keyboard activation, names and state through Flutter Semantics, sufficient contrast and enlarged text without clipped actions.
-- Design tokens remain centralized in `lib/src/core/theme/admin_theme.dart`. Kite contributes composition only: grouped sidebar, contextual topbar, local list toolbar and compact tables. Preserve TooApp brand `#165D54` and canvas `#F5F7F6`; do not copy reference metrics, labels, commerce data or colors. Use the installed Flutter Material 3 widgets and Material Icons; do not add an icon package or API behavior without contract support.
+- Design tokens remain centralized in `lib/src/core/theme/admin_theme.dart`. Kite contributes composition only: grouped sidebar, contextual topbar, local list toolbar and compact tables. Use TooApp mobile tokens: primary blue `#0875CE`, success green `#007A59`, and canvas `#F6F6F7`; do not copy reference metrics, labels, commerce data or colors. Use the installed Flutter Material 3 widgets and Material Icons; do not add an icon package or API behavior without contract support.
 
 ### Dependency decisions
 
@@ -251,7 +251,7 @@ No tests are run or written during plan generation. During implementation, use e
 | Decision | Approved rule | Contract implication |
 |---|---|---|
 | Browser access and admin provisioning | Web uses the current JWT Bearer login/refresh/logout contract and allows the dashboard origin; development wildcard reflects loopback origins only. ADMIN accounts are provisioned out of band; no API or dashboard endpoint may create or elevate ADMIN. | Validate active account and exact ADMIN role on every admin request; preserve mobile Bearer contracts. No cookie/CSRF contract is added.
-| Users/providers | No account creation in the console. User list/detail exposes id, name, email, phone, role, locality and active state; editable user fields are first/last name, phone and locality, plus reversible deactivation. Exclude DNI, credentials, hashes and tokens. Provider management uses non-sensitive profile fields and account status; account status is distinct from availability. | Strict Zod allowlists; no role mutation; deactivate revokes refresh tokens. Search users by name/email/phone; providers by name/category/locality.
+| Users/providers | Superseded by Addendum 2026-11-18: one combined read-only screen for CLIENT and PROVIDER. No profile, account-status, or portfolio mutations are exposed from this screen. | Add protected GET `/admin/accounts` with global filters and pagination; reuse existing models/tables without schema or migration changes. Exclude DNI, credentials, hashes, tokens, and coordinates.
 | Categories | Create as PENDING; edit name/icon; PENDING may transition to APPROVED or REJECTED; REJECTED is terminal. Only APPROVED categories can be disabled. | Validate transitions in service; stale transitions return 409; no hard delete except existing transactional unification.
 | Contacts | PENDING→SCHEDULED/CANCELLED; SCHEDULED→COMPLETED/CANCELLED; terminal states cannot reopen. Admin list omits free-text problem description. Log actor, timestamp and transition. | Queries filter by state/provider/category/client; schedule date required for SCHEDULED.
 | Services/portfolio | No independent Service model; service offerings are represented by provider profile and category relations. Portfolio images can be hidden/restored while preserving original files, with moderation audit. | No Service table; add reversible image visibility/archive state only.
@@ -338,3 +338,40 @@ Para que el cambio sea perceptible y consistente, las pantallas comparten un enc
 - Novedades de contacto: `ContactIntent.status=PENDING`, presentadas como solicitudes de contacto, no como mensajes de chat.
 
 Flutter reemplaza las tarjetas de navegación de Inicio por indicadores no clicables, selector 7/30 días, estado de carga y error con reintento. La navegación permanece en el drawer.
+
+## Addendum 2026-11-18: lista conjunta de usuarios y prestadores
+
+Este addendum es la decisión vigente para FR-024/FR-025 y reemplaza cualquier sección anterior del plan que proponga pantallas separadas, edición de perfiles, cambio de estado de cuenta o moderación de portafolio desde Usuarios/Prestadores. Las demás áreas administrativas permanecen disponibles según sus requisitos propios.
+
+### Decisiones de API
+
+- Añadir `GET /admin/accounts` al módulo existente `src/modules/admin-read/`; proteger con `authenticate` y `requireRole('ADMIN')` y validar la query con Zod estricto.
+- Reutilizar `User` (`CLIENT`/`PROVIDER`) y la relación existente `ProviderProfile`; no añadir entidades, columnas, índices, migraciones ni ejecutar SQL. Este incremento no conecta ni consulta una base de datos desde el agente; las verificaciones usan mocks.
+- Parámetros: `page` entero >=1 default 1; `limit` entero 1..100 default 20; `q` opcional hasta 100 caracteres; `accountType` opcional `CLIENT|PROVIDER`; `isAccountActive` opcional booleano serializado como `true|false`; `localityId` UUID opcional; `categoryId` UUID opcional y `isAvailable` opcional, ambos aplicables solo a prestadores. Si `accountType=CLIENT` se combina con un filtro exclusivo de prestadores, responder `422`.
+- `q` busca en los campos de identidad ya admitidos (nombre, apellido, email y teléfono); el DTO de lista conserva la minimización de datos de FR-040 y excluye DNI, credenciales, hashes, tokens y coordenadas.
+- Aplicar filtros antes del conteo y de paginar. Orden global estable: `createdAt` descendente y `User.id` ascendente como desempate. El total cuenta ambos roles después de aplicar filtros. El repositorio puede consultar ramas disjuntas de rol, combinar por la misma clave de orden y recortar la página global; no debe combinar páginas parciales como si fueran una página conjunta.
+- Respuesta de lista sigue el contrato ya usado por `admin-read`: `{data: AccountListItem[], total, page, limit}`. `AccountListItem` tiene `id`, discriminante `accountType`, campos básicos permitidos, estado de cuenta, localidad relacionada, `createdAt` y `providerProfile` nullable con categoría principal/estado de disponibilidad para `PROVIDER`.
+- No reutilizar PATCH desde esta vista. Cualquier futura escritura requiere una nueva decisión explícita y no se infiere de los endpoints actuales.
+
+### Decisiones de Flutter
+
+- Crear `features/accounts/{data,models,presentation}` para modelo discriminado, data source, repository y pantalla conjunta.
+- Reemplazar los destinos y entradas separadas `/users` y `/providers` del router/drawer por `/accounts` y la etiqueta `Usuarios y prestadores`. Mantener Inicio y todos los otros módulos administrativos aprobados.
+- La pantalla usa una tabla de solo lectura con filtro de tipo, búsqueda/filtros admitidos, paginación global, estados de carga/vacío/error y reintento. No mostrar menús de editar, activar/desactivar ni moderar portafolio; no mantener una segunda pantalla de usuario/prestador accesible en el drawer.
+- El resto del shell conserva accesibilidad, foco, texto ampliado y tokens vigentes TooApp (`#0875CE`, `#007A59`, `#F6F6F7`).
+
+### Constitución, privacidad y verificación
+
+- Principios I–III: la acción se limita a consulta, la ruta exige `ADMIN`, los campos usan allowlist y no se amplían permisos por el hecho de mostrar el rol de cuenta.
+- Principio VII: la experiencia usa tokens visuales centralizados.
+- Principios VIII–X: mostrar solo respuesta confirmada; cubrir autorización, query, filtros, orden/paginación global, errores, DTO allowlist y accesibilidad con pruebas unitarias/HTTP mock.
+- Restricción absoluta de base de datos: no conectar, consultar, ejecutar SQL, aplicar migraciones ni inspeccionar datos; no se requiere cambio de esquema. No ejecutar pruebas de integración PostgreSQL para este incremento.
+- Gate post-diseño: PASS. El endpoint es de lectura sobre modelos existentes, la UI no muta registros y el contrato puede verificarse con repositorios simulados. No queda decisión funcional pendiente para planificar el incremento.
+
+### Orden de implementación del incremento
+
+1. Añadir esquema, contrato OpenAPI, controller/service/repository y pruebas API mock para autorización, validación estricta, combinación de roles, filtros, total, orden estable y fronteras de página.
+2. Añadir modelos/data source/repository Flutter y pruebas de parsing/error del contrato.
+3. Construir `/accounts`, fusionar en router y drawer, retirar accesos separados a edición/estado/portafolio para estas poblaciones y cubrir estados responsivos y de solo lectura.
+4. Ejecutar únicamente análisis y pruebas mock/unitarias declaradas en `quickstart.md`; no usar base real, migraciones ni tareas de datos.
+
